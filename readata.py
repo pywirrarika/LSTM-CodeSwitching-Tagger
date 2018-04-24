@@ -1,10 +1,11 @@
 import torch.nn as nn
 import torch
 import torch.autograd as autograd
+from torch.autograd import Variable
 import torch.optim as optim
 import torch.nn.functional as F
 
-
+from csfeatures import morphVec
 
 PAD = "<PAD>" # padding
 EOS = "<EOS>" # end of sequence
@@ -17,10 +18,10 @@ SOS_IDX = 2
 OOV_IDX = 3
 
 def readtrain():
-    return read('train.enes.txt')
+    return read('data/train.enes.txt')
 
 def readdev():
-    return read('test_enes.txt')
+    return read('data/test_enes.txt')
 
 def read(filename):
     F = open(filename, 'r').read().split('\n')
@@ -64,18 +65,43 @@ def prepare_embedding(data):
         index_to_word[value] = key
     return tag_to_index, word_to_index, index_to_tag, index_to_word
 
+def make_feature_vector(word, idx):
+    idxs = [float(idx)] + morphVec(word)
+    tensor = torch.FloatTensor(idxs)
+    return Variable(tensor)
+
 # Esta función generará secuencias con embeddings listos para usarse
 # a partir del diccionarios definido con prepare_embedding
 def prepare(seq, to_index):
     emb = []
     for word in seq:
         try:
-            emb.append(to_index[word])
+            idx=to_index[word]
         except KeyError:
-            emb.append(OOV_IDX)
+            idx=OOV_IDX
+        emb.append(idx)
 
     tensor = torch.LongTensor(emb)
     return autograd.Variable(tensor)
 
+def prepare_in(seq, to_index, wfeatures=0):
+    emb = []
+    for word in seq:
+        try:
+            idx=to_index[word]
+        except KeyError:
+            idx=OOV_IDX
+        if wfeatures:
+            vec = make_feature_vector(word, idx)
+            emb.append(vec)
+        else:
+            emb.append(idx)
 
+    tensor = torch.LongTensor(emb)
+    return autograd.Variable(tensor)
+
+if __name__ == '__main__':
+    var = [make_feature_vector('Hola', 12), make_feature_vector('Hello', 82), make_feature_vector('lindo', 23), ]
+    print(var)
+    print(torch.LongTensor(var))
 

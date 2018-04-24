@@ -1,3 +1,5 @@
+import pickle
+
 import torch.nn as nn
 import torch
 import torch.autograd as autograd
@@ -6,7 +8,7 @@ import torch.nn.functional as F
 
 from utils import save_checkpoint
 from readata import readtrain, prepare_embedding, prepare
-import pickle
+from csfeatures import morphVec
 
 NUM_LAYERS = 2
 DROPOUT = 0.5
@@ -17,7 +19,7 @@ SAVE_EVERY = 1
 
 EMBEDDING_DIM = 100
 HIDDEN_DIM = 100
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.02
 
 class LSTMTagger(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
@@ -49,6 +51,9 @@ class LSTMTagger(nn.Module):
         tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
         tag_scores = F.log_softmax(tag_space, dim=1)
         return tag_scores
+
+
+
 
 def train():
     print('Reading data...')

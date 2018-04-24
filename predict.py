@@ -15,7 +15,7 @@ data = readdev()
 with open('data.pickle', 'rb') as f:
    [tag_to_index, word_to_index, index_to_tag, index_to_word] = pickle.load(f)
 
-print(sys.argv[1])
+#print(sys.argv[1])
 model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
 load_checkpoint(sys.argv[1], model)
 
@@ -35,7 +35,7 @@ def out_gen(tag_scores, index_to_tag):
 correct = 0
 total = 0
 for line in data:
-    print(line[0])
+    #print(line[0])
     inputs = prepare(line[0], word_to_index)
     tag_scores = model(inputs)
     #print(tag_scores)
@@ -46,8 +46,8 @@ for line in data:
         if pred == gold:
             correct += 1
         total += 1
-    print(tags)
-    print(line[1])
+    #print(tags)
+    #print(line[1])
 
 print("Accuracy:", correct/total)
 

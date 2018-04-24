@@ -13,8 +13,9 @@ def load_checkpoint(filename, model = None, g2c = False):
     print("saved model: epoch = %d, loss = %f" % (checkpoint["epoch"], checkpoint["loss"]))
     return epoch
 
-def save_checkpoint(filename, model, epoch, loss):
-    print("saving model...")
+def save_checkpoint(filename, model, epoch, loss, verbose=False):
+    if verbose:
+        print("saving model...")
     checkpoint = {}
     checkpoint["state_dict"] = model.state_dict()
     checkpoint["epoch"] = epoch
