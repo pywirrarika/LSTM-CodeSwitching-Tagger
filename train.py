@@ -6,6 +6,7 @@ import torch.autograd as autograd
 import torch.optim as optim
 import torch.nn.functional as F
 
+from tqdm import tqdm  # Wrap any iterator to show a progress bar.
 from utils import save_checkpoint
 from readata import readtrain, prepare_embedding, prepare
 from csfeatures import morphVec
@@ -73,8 +74,9 @@ def train():
     #Train
     print('Train with', len(data), 'examples.')
     for epoch in range(300):
+        print(f'Starting epoch {epoch}.')
         loss_sum = 0
-        for sentence, tags in data:
+        for sentence, tags in tqdm(data):
             model.zero_grad()
             model.hidden = model.init_hidden()
             sentence_in = prepare(sentence, word_to_index)
