@@ -8,19 +8,10 @@ import torch.nn.functional as F
 
 from tqdm import tqdm  # Wrap any iterator to show a progress bar.
 from utils import save_checkpoint
-from readata import readtrain, prepare_embedding, prepare
+from readata import readtrain, readdev, prepare_embedding, prepare
 from csfeatures import morphVec
-
-NUM_LAYERS = 2
-DROPOUT = 0.5
-BIDIRECTIONAL = True
-NUM_DIRS = 2 if BIDIRECTIONAL else 1
-WEIGHT_DECAY = 1e-4
-SAVE_EVERY = 1
-
-EMBEDDING_DIM = 100
-HIDDEN_DIM = 100
-LEARNING_RATE = 0.02
+from predict import predict
+from config import *
 
 class LSTMTagger(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
@@ -53,21 +44,21 @@ class LSTMTagger(nn.Module):
         tag_scores = F.log_softmax(tag_space, dim=1)
         return tag_scores
 
-
-
-
 def train():
     print('Reading data...')
     data = readtrain()
+    data_dev = readdev()
     print('Preparing data...')
     tag_to_index, word_to_index, index_to_tag, index_to_word = prepare_embedding(data)
+    idxs = [tag_to_index, word_to_index, index_to_tag, index_to_word]
     with open('data.pickle', 'wb') as f:
         pickle.dump([tag_to_index, word_to_index, index_to_tag, index_to_word], f, pickle.HIGHEST_PROTOCOL)
 
 
     model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
     loss_function = nn.NLLLoss()
-    optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
+    #optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 
     filename = "models/model"
@@ -92,6 +83,12 @@ def train():
             print("epoch = %d, loss = %f" % (epoch, loss_sum / len(data)))
         else:
             save_checkpoint(filename+str(epoch), model, epoch, loss_sum / len(data))
+
+        #Evaluate on dev
+        if not epoch % SHOW_ACCURACY:
+            accuracy = predict(data_dev, model_=model, idxs=idxs)
+            print("Accuracy:", accuracy)
+
 
 if __name__ == '__main__':
     train()
