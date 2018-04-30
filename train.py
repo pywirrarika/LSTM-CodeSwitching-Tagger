@@ -106,8 +106,8 @@ def train():
         for sentence, tags in tqdm(data):
             model.zero_grad()
             model.hidden = model.init_hidden()
-            tag_scores = model(sentence_in)
-            loss = loss_function(tag_scores, targets)
+            tag_scores = model(sentence)
+            loss = loss_function(tag_scores, tags)
             loss_sum += loss.data[0]
             #print('Loss, epoch', epoch, '=', loss.data[0])
             loss.backward()
