@@ -7,11 +7,13 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from tqdm import tqdm  # Wrap any iterator to show a progress bar.
-from utils import save_checkpoint
-from readata import readtrain, readdev, prepare_embedding, prepare
+from utils import save_checkpoint, print_hyperparameters
+from readata import readtrain, readdev, prepare_embedding, prepare, mini_batch, get_loader
 from csfeatures import morphVec
 from predict import predict
 from config import *
+
+
 
 class LSTMTagger(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
@@ -45,33 +47,65 @@ class LSTMTagger(nn.Module):
         return tag_scores
 
 def train():
+    torch.initial_seed()
+    filename = "models/model"
+
+    print_hyperparameters()
+    # Loding data and preprocesing
     print('Reading data...')
-    data = readtrain()
-    data_dev = readdev()
+    data_raw = readtrain()
+    data_raw_dev = readdev()
+
     print('Preparing data...')
-    tag_to_index, word_to_index, index_to_tag, index_to_word = prepare_embedding(data)
+
+    tag_to_index, word_to_index, index_to_tag, index_to_word = prepare_embedding(data_raw)
     idxs = [tag_to_index, word_to_index, index_to_tag, index_to_word]
+    
+
+    loader = get_loader(data_raw, idxs)
+    print(loader)
+    
+    data = []
+    for sentence, tags in data_raw:
+        sentence_in = prepare(sentence, word_to_index)
+        targets = prepare(tags, tag_to_index)
+        data.append((sentence_in, targets))
+
+    data_dev = data_raw_dev
+#    data_dev = []
+#    for sentence, tags in data_raw_dev:
+#        sentence_in = prepare(sentence, word_to_index)
+#        targets = prepare(tags, tag_to_index)
+#        data_dev.append((sentence_in, targets))
+#
+
+    #data_batches = mini_batch(idxs, data)
+#    data_dev_batches = mini_batch(idxs, data_dev)
+    print('Training Data size', len(data))
+    print('Dev data size', len(data_dev))
+ 
+    # Save indexes to data.pickle
     with open('data.pickle', 'wb') as f:
         pickle.dump([tag_to_index, word_to_index, index_to_tag, index_to_word], f, pickle.HIGHEST_PROTOCOL)
 
-
+    
+    # Create an instance of the NN
     model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
     loss_function = nn.NLLLoss()
-    #optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    if OPTIMIZER == 'SGD':
+        optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 
-    filename = "models/model"
     #Train
     print('Train with', len(data), 'examples.')
-    for epoch in range(300):
+    for epoch in range(EPOCHS):
         print(f'Starting epoch {epoch}.')
         loss_sum = 0
         for sentence, tags in tqdm(data):
             model.zero_grad()
             model.hidden = model.init_hidden()
-            sentence_in = prepare(sentence, word_to_index)
-            targets = prepare(tags, tag_to_index)
             tag_scores = model(sentence_in)
             loss = loss_function(tag_scores, targets)
             loss_sum += loss.data[0]
