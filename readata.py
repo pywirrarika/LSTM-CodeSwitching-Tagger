@@ -165,7 +165,8 @@ class Dataset(data.Dataset):
                 emb.append(idx)
 
         tensor = torch.LongTensor(emb)
-        return autograd.Variable(tensor)
+        #return autograd.Variable(tensor)
+        return tensor
 
 def collate_fn(data):
     """Creates mini-batch tensors from the list of tuples (src_seq, trg_seq).

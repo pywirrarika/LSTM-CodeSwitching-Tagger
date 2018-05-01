@@ -5,6 +5,8 @@ import torch
 import torch.autograd as autograd
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+
 
 from tqdm import tqdm  # Wrap any iterator to show a progress bar.
 from utils import save_checkpoint, print_hyperparameters
@@ -29,22 +31,42 @@ class LSTMTagger(nn.Module):
                 )
 
         self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
-        self.hidden = self.init_hidden()
+        #self.hidden = self.init_hidden()
         self.dropout = nn.Dropout(p=DROPOUT)
+        self.softmax = nn.LogSoftmax()
     
-    def init_hidden(self):
-        return (autograd.Variable(torch.zeros(NUM_LAYERS * NUM_DIRS,1,self.hidden_dim // NUM_DIRS )),
-                autograd.Variable(torch.zeros(NUM_LAYERS * NUM_DIRS,1,self.hidden_dim // NUM_DIRS)))
+#    def init_hidden(self):
+#        return (autograd.Variable(torch.zeros(NUM_LAYERS * NUM_DIRS,1,self.hidden_dim // NUM_DIRS )),
+#                autograd.Variable(torch.zeros(NUM_LAYERS * NUM_DIRS,1,self.hidden_dim // NUM_DIRS)))
 
-    def forward(self,sentence):
-        embeds = self.word_embeddings(sentence)
+    def init_hidden(self, batch):
+            return (autograd.Variable(torch.randn(NUM_LAYERS*NUM_DIRS, batch, self.hidden_dim // NUM_DIRS)),
+                    autograd.Variable(torch.randn(NUM_LAYERS*NUM_DIRS, batch, self.hidden_dim // NUM_DIRS)))
 
-        embeds = self.dropout(embeds) 
-        lstm_out, self.hidden = self.lstm(embeds.view(len(sentence), 1, -1), self.hidden)
-        lstm_out = self.dropout(lstm_out) 
-        tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
-        tag_scores = F.log_softmax(tag_space, dim=1)
-        return tag_scores
+#    def forward(self,sentence):
+#        embeds = self.word_embeddings(sentence)
+#
+#        embeds = self.dropout(embeds) 
+#        lstm_out, self.hidden = self.lstm(embeds.view(len(sentence), 1, -1), self.hidden)
+#        lstm_out = self.dropout(lstm_out) 
+#        tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
+#        tag_scores = F.log_softmax(tag_space, dim=1)
+#        return tag_scores
+
+    def _get_lstm_features(self, names, lengths):
+        self.hidden = self.init_hidden(names.size(-1))
+        embeds = self.word_embeddings(names)  
+        print(embeds)
+        print(lengths)
+        packed_input = pack_padded_sequence(embeds, lengths)  
+        packed_output, (ht, ct) = self.lstm(packed_input, self.hidden)  
+        lstm_out, _ = pad_packed_sequence(packed_output)  
+        lstm_feats = self.hidden2tag(lstm_out)
+        output = self.softmax(lstm_feats)  
+        return output
+
+    def forward(self, name, lengths):
+        return self._get_lstm_features(name, lengths)
 
 def train():
     torch.initial_seed()
@@ -62,9 +84,11 @@ def train():
     idxs = [tag_to_index, word_to_index, index_to_tag, index_to_word]
     
 
-    loader = get_loader(data_raw, idxs)
-    print(loader)
-    
+    dataset = get_loader(data_raw, idxs)
+    print(dataset)
+   
+    data_iter = iter(dataset)
+
     data = []
     for sentence, tags in data_raw:
         sentence_in = prepare(sentence, word_to_index)
@@ -92,6 +116,9 @@ def train():
     # Create an instance of the NN
     model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
     loss_function = nn.NLLLoss()
+
+    if USE_CUDA:
+        model = model.cuda()
     if OPTIMIZER == 'SGD':
         optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
     else:
@@ -101,28 +128,48 @@ def train():
     #Train
     print('Train with', len(data), 'examples.')
     for epoch in range(EPOCHS):
+        #dataset = shuffle(dataset)
         print(f'Starting epoch {epoch}.')
         loss_sum = 0
-        for sentence, tags in tqdm(data):
+        y_true = list()
+        y_pred = list()
+        for batch, targets, lengths, raw_data in dataset:
+            print(batch)
             model.zero_grad()
-            model.hidden = model.init_hidden()
-            tag_scores = model(sentence)
-            loss = loss_function(tag_scores, tags)
-            loss_sum += loss.data[0]
-            #print('Loss, epoch', epoch, '=', loss.data[0])
+            pred = model(autograd.Variable(batch), lengths)
+            loss = loss_function(pred, autograd.Variable(targets))
             loss.backward()
             optimizer.step()
+            loss_sum += loss.data[0]
+            pred_idx = torch.max(pred, 1)[1]
+            y_true += list(targets.int())
+            y_pred += list(pred_idx.data.int())
 
-        if epoch % SAVE_EVERY:
-            print("epoch = %d, loss = %f" % (epoch, loss_sum / len(data)))
-        else:
-            save_checkpoint(filename+str(epoch), model, epoch, loss_sum / len(data))
+        #acc = accuracy_score(y_true, y_pred)
+        loss_total=loss_sum / len(dataset)
 
-        #Evaluate on dev
-        if not epoch % SHOW_ACCURACY:
-            accuracy = predict(data_dev, model_=model, idxs=idxs)
-            print("Accuracy:", accuracy)
+        #print('Accuracy on test:', acc, 'loss:', loss_total)
+        print('loss:', loss_total)
 
+#        for sentence, tags in tqdm(data):
+#            model.zero_grad()
+#            model.hidden = model.init_hidden()
+#            tag_scores = model(sentence)
+#            loss = loss_function(tag_scores, tags)
+#            loss_sum += loss.data[0]
+#            loss.backward()
+#            optimizer.step()
+#
+#        if epoch % SAVE_EVERY:
+#            print("epoch = %d, loss = %f" % (epoch, loss_sum / len(data)))
+#        else:
+#            save_checkpoint(filename+str(epoch), model, epoch, loss_sum / len(data))
+#
+#        #Evaluate on dev
+#        if not epoch % SHOW_ACCURACY:
+#            accuracy = predict(data_dev, model_=model, idxs=idxs)
+#            print("Accuracy:", accuracy)
+#
 
 if __name__ == '__main__':
     train()
