@@ -10,6 +10,7 @@ import sys
 from utils import load_checkpoint
 from readata import readdev, prepare_embedding, prepare, EOS, SOS
 from config import *
+from model import LSTMTagger
 
 def predict(data, model_name='', model_=None, idxs=None):
 

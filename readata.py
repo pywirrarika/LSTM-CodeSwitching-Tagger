@@ -83,8 +83,8 @@ def prepare(seq, to_index):
             idx=OOV_IDX
         emb.append(idx)
 
-    tensor = torch.LongTensor(emb)
-    return autograd.Variable(tensor)
+    #tensor = torch.LongTensor(emb)
+    return emb #autograd.Variable(tensor)
 
 def prepare_in(seq, to_index, wfeatures=0):
     emb = []
@@ -102,27 +102,12 @@ def prepare_in(seq, to_index, wfeatures=0):
     tensor = torch.LongTensor(emb)
     return autograd.Variable(tensor)
 
-# Organize minibaches
-def mini_batch(idxs, data):
-    batch_x = []
-    batch_y = []
-    batch_len = 0 # maximum sequence length of a mini-batch
-    [tag_to_index, word_to_index, index_to_tag, index_to_word] = idxs 
-    for x, y in data:
-        print(x, y)
-        seq_len = len(x)
-        if len(batch_x) == 0: # the first line has the maximum sequence length
-            batch_len = seq_len
-        pad = [PAD_IDX] * (batch_len - seq_len)
-        batch_x.append(x + pad)
-        batch_y.append(y + pad)
-        if len(batch_x) == BATCH_SIZE:
-            data.append((Var(LongTensor(batch_x)), LongTensor(batch_y))) # append a mini-batch
-            batch_x = []
-            batch_y = []
-    print("data size: %d" % (len(data) * BATCH_SIZE))
-    print("batch size: %d" % BATCH_SIZE)
-    return data
+def pad_sequences(vectorized_seqs, seq_lengths):
+    seq_tensor = torch.zeros((len(vectorized_seqs), seq_lengths.max())).long()
+    for idx, (seq, seqlen) in enumerate(zip(vectorized_seqs, seq_lengths)):
+        seq_tensor[idx, :seqlen] = torch.LongTensor(seq)
+    return seq_tensor
+
 
 class Dataset(data.Dataset):
     """Custom data.Dataset compatible with data.DataLoader."""
@@ -137,8 +122,17 @@ class Dataset(data.Dataset):
             self.src_seqs.append(self.prepare(sentence, self.word_to_index))
             self.trg_seqs.append(self.prepare(tags, self.tag_to_index))
 
+        self.num_total_seqs = torch.LongTensor([len(s) for s in self.src_seqs])
+        #print(self.src_seqs)
+        #print(self.seq_lengths)
+        #self.seq_tensor = pad_sequences(self.src_seqs, self.seq_lengths)
+        #self.target_tensor = torch.LongTensor()
+
+
+
         #self.data = data
-        self.num_total_seqs = len(data)
+        #self.num_total_seqs = len(data)
+        #self.data_tensor.size(0)
 
     def __getitem__(self, index):
         """Returns one data pair (source and target)."""
@@ -146,7 +140,7 @@ class Dataset(data.Dataset):
         #src = prepare_in(src, sefl.word_to_index)
         #trg = prepare_in(trg, sefl.word_to_index)
         
-        return self.src_seqs[index], self.trg_seqs[index]
+        return torch.LongTensor(self.src_seqs[index]), torch.LongTensor(self.trg_seqs[index])
 
     def __len__(self):
         return self.num_total_seqs
@@ -169,23 +163,7 @@ class Dataset(data.Dataset):
         return tensor
 
 def collate_fn(data):
-    """Creates mini-batch tensors from the list of tuples (src_seq, trg_seq).
 
-    We should build a custom collate_fn rather than using default collate_fn,
-    because merging sequences (including padding) is not supported in default.
-    Seqeuences are padded to the maximum length of mini-batch sequences (dynamic padding).
-
-    Args:
-        data: list of tuple (src_seq, trg_seq).
-            - src_seq: torch tensor of shape (?); variable length.
-            - trg_seq: torch tensor of shape (?); variable length.
-
-    Returns:
-        src_seqs: torch tensor of shape (batch_size, padded_length).
-        src_lengths: list of length (batch_size); valid length for each padded source sequence.
-        trg_seqs: torch tensor of shape (batch_size, padded_length).
-        trg_lengths: list of length (batch_size); valid length for each padded target sequence.
-    """
     def merge(sequences):
         lengths = [len(seq) for seq in sequences]
         padded_seqs = torch.zeros(len(sequences), max(lengths)).long()
@@ -207,18 +185,7 @@ def collate_fn(data):
     return src_seqs, src_lengths, trg_seqs, trg_lengths
 
 def get_loader(data_raw, idxs):
-    """Returns data loader for custom dataset.
 
-    Args:
-        src_path: txt file path for source domain.
-        trg_path: txt file path for target domain.
-        src_word2id: word-to-id dictionary (source domain).
-        trg_word2id: word-to-id dictionary (target domain).
-        batch_size: mini-batch size.
-
-    Returns:
-        data_loader: data loader for custom dataset.
-    """
     # build a custom dataset
     dataset = Dataset(data_raw, idxs)
 
