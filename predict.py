@@ -20,7 +20,6 @@ def predict(data, model_name='', model_=None, idxs=None):
         with open('data.pickle', 'rb') as f:
            [tag_to_index, word_to_index, index_to_tag, index_to_word] = pickle.load(f)
 
-    #print(sys.argv[1])
     if model_name:
         model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
         load_checkpoint(model_name, model)
@@ -45,10 +44,8 @@ def predict(data, model_name='', model_=None, idxs=None):
     correct = 0
     total = 0
     for line in data:
-        #print(line[0])
         inputs = prepare(line[0], word_to_index)
         tag_scores = model(inputs)
-        #print(tag_scores)
         tags = out_gen(tag_scores, index_to_tag)
         for pred, gold in zip(tags, line[1]):
             if gold in [EOS, SOS]:
@@ -56,8 +53,6 @@ def predict(data, model_name='', model_=None, idxs=None):
             if pred == gold:
                 correct += 1
             total += 1
-        #print(tags)
-        #print(line[1])
 
     return correct/total
 

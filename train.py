@@ -16,12 +16,12 @@ from predict import predict
 from config import *
 from model import LSTMTagger
 
-def sort_batch(batch, ys, lengths):
-    print(lengths)
-    seq_lengths, perm_idx = lengths.sort(0, descending=True)
-    seq_tensor = batch[perm_idx]
-    targ_tensor = ys[perm_idx]
-    return seq_tensor.transpose(0, 1), targ_tensor, seq_lengths
+#def sort_batch(batch, ys, lengths):
+#    print('In sort_batch, lengths:',lengths)
+#    seq_lengths, perm_idx = lengths.sort(0, descending=True)
+#    seq_tensor = batch[perm_idx]
+#    targ_tensor = ys[perm_idx]
+#    return seq_tensor.transpose(0, 1), targ_tensor, seq_lengths
 
 def train():
     torch.initial_seed()
@@ -40,9 +40,7 @@ def train():
     
 
     dataset = get_loader(data_raw, idxs)
-    print(dataset)
    
-    data_iter = iter(dataset)
 
     data = []
     for sentence, tags in data_raw:
@@ -83,13 +81,11 @@ def train():
     #Train
     print('Train with', len(data), 'examples.')
     for epoch in range(EPOCHS):
-        #dataset = shuffle(dataset)
         print(f'Starting epoch {epoch}.')
         loss_sum = 0
         y_true = list()
         y_pred = list()
-        for batch, targets, lengths, raw_data in dataset:
-            batch, targets, lengths = sort_batch(batch, targets, lengths)
+        for batch, lengths, targets, lengths2 in dataset:
             model.zero_grad()
             pred = model(autograd.Variable(batch), lengths)
             loss = loss_function(pred, autograd.Variable(targets))

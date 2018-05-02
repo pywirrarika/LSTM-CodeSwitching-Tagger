@@ -39,8 +39,9 @@ class LSTMTagger(nn.Module):
 #                autograd.Variable(torch.zeros(NUM_LAYERS * NUM_DIRS,1,self.hidden_dim // NUM_DIRS)))
 
     def init_hidden(self, batch):
-            return (autograd.Variable(torch.randn(NUM_LAYERS*NUM_DIRS, batch, self.hidden_dim // NUM_DIRS)),
-                    autograd.Variable(torch.randn(NUM_LAYERS*NUM_DIRS, batch, self.hidden_dim // NUM_DIRS)))
+        print(batch)
+        return (autograd.Variable(torch.randn(NUM_LAYERS*NUM_DIRS, batch, self.hidden_dim // NUM_DIRS)),
+                autograd.Variable(torch.randn(NUM_LAYERS*NUM_DIRS, batch, self.hidden_dim // NUM_DIRS)))
 
 #    def forward(self,sentence):
 #        embeds = self.word_embeddings(sentence)
@@ -52,14 +53,21 @@ class LSTMTagger(nn.Module):
 #        tag_scores = F.log_softmax(tag_space, dim=1)
 #        return tag_scores
 
-    def _get_lstm_features(self, names, lengths):
-        self.hidden = self.init_hidden(names.size(-1))
-        embeds = self.word_embeddings(names)  
-        print(embeds)
-        print(lengths)
-        packed_input = pack_padded_sequence(embeds, lengths)  
-        packed_output, (ht, ct) = self.lstm(packed_input, self.hidden)  
+    def _get_lstm_features(self, sentence, lengths):
+        print(sentence.size())
+        self.hidden = self.init_hidden(sentence.size(-1))
+        embeds = self.word_embeddings(sentence)  
+        print(embeds.size())
+        packed_input = pack_padded_sequence(embeds, lengths)
+        print('input vector',packed_input)
+        packed_output, (ht, ct) = self.lstm(packed_input, self.hidden)
         lstm_out, _ = pad_packed_sequence(packed_output)  
+        lstm_out = torch.transpose(lstm_out, 0, 1)
+        lstm_out = torch.transpose(lstm_out, 1, 2)
+        lstm_out = F.tanh(lstm_out)  # Figure 8
+        lstm_out, indices = F.max_pool1d(lstm_out, lstm_out.size(2), return_indices=True)
+        lstm_out = lstm_out.squeeze(2)
+        lstm_out = F.tanh(lstm_out)
         lstm_feats = self.hidden2tag(lstm_out)
         output = self.softmax(lstm_feats)  
         return output

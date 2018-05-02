@@ -122,23 +122,10 @@ class Dataset(data.Dataset):
             self.src_seqs.append(self.prepare(sentence, self.word_to_index))
             self.trg_seqs.append(self.prepare(tags, self.tag_to_index))
 
-        self.num_total_seqs = torch.LongTensor([len(s) for s in self.src_seqs])
-        #print(self.src_seqs)
-        #print(self.seq_lengths)
-        #self.seq_tensor = pad_sequences(self.src_seqs, self.seq_lengths)
-        #self.target_tensor = torch.LongTensor()
-
-
-
-        #self.data = data
-        #self.num_total_seqs = len(data)
-        #self.data_tensor.size(0)
+        self.num_total_seqs = len(data)
 
     def __getitem__(self, index):
         """Returns one data pair (source and target)."""
-        #[src, trg] = self.data[index]
-        #src = prepare_in(src, sefl.word_to_index)
-        #trg = prepare_in(trg, sefl.word_to_index)
         
         return torch.LongTensor(self.src_seqs[index]), torch.LongTensor(self.trg_seqs[index])
 
