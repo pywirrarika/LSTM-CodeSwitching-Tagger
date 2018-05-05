@@ -86,51 +86,48 @@ def prepare(seq, to_index):
     #tensor = torch.LongTensor(emb)
     return emb #autograd.Variable(tensor)
 
-def prepare_in(seq, to_index, wfeatures=0):
-    emb = []
-    for word in seq:
-        try:
-            idx=to_index[word]
-        except KeyError:
-            idx=OOV_IDX
-        if wfeatures:
-            vec = make_feature_vector(word, idx)
-            emb.append(vec)
-        else:
-            emb.append(idx)
-
-    tensor = torch.LongTensor(emb)
-    return autograd.Variable(tensor)
-
 def pad_sequences(vectorized_seqs, seq_lengths):
     seq_tensor = torch.zeros((len(vectorized_seqs), seq_lengths.max())).long()
     for idx, (seq, seqlen) in enumerate(zip(vectorized_seqs, seq_lengths)):
         seq_tensor[idx, :seqlen] = torch.LongTensor(seq)
     return seq_tensor
 
+def sort_batch(batch, ys, lengths):
+    print(type(lengths))
+    seq_lengths, perm_idx = lengths.sort(0,descending=True)
+    seq_tensor = batch[perm_idx]
+    targ_tensor = ys[perm_idx]
+    return seq_tensor.transpose(0, 1), targ_tensor, seq_lengths
 
 class Dataset(data.Dataset):
     """Custom data.Dataset compatible with data.DataLoader."""
     def __init__(self, data, idxs):
-        """Reads source and target."""
+        """Reads source and target and prepare data"""
 
         [self.tag_to_index, self.word_to_index, self.index_to_tag, self.index_to_word] = idxs
 
         self.src_seqs = []
         self.trg_seqs = []
+        seq_lengths = list() 
+
+        # Vectorize the input data. 
         for sentence, tags in data:
             self.src_seqs.append(self.prepare(sentence, self.word_to_index))
             self.trg_seqs.append(self.prepare(tags, self.tag_to_index))
 
+        seq_lengths = torch.LongTensor([len(s) for s in self.src_seqs])
+
+        self.src_seqs = torch.LongTensor(pad_sequences(self.src_seqs, seq_lengths))
+        self.trg_seqs = torch.LongTensor(pad_sequences(self.trg_seqs, seq_lengths))
+        
         self.num_total_seqs = len(data)
 
     def __getitem__(self, index):
         """Returns one data pair (source and target)."""
-        
-        return torch.LongTensor(self.src_seqs[index]), torch.LongTensor(self.trg_seqs[index])
+        return self.src_seqs[index],self.trg_seqs[index]
 
     def __len__(self):
-        return self.num_total_seqs
+        return self.src_seqs.size(0)
 
     def prepare(self, seq, to_index, wfeatures=0):
         emb = []
@@ -160,7 +157,7 @@ def collate_fn(data):
         return padded_seqs, lengths
 
     # sort a list by sequence length (descending order) to use pack_padded_sequence
-    data.sort(key=lambda x: len(x[0]), reverse=True)
+    #data.sort(key=lambda x: len(x[0]), reverse=True)
 
     # seperate source and target sequences
     src_seqs, trg_seqs = zip(*data)
@@ -169,7 +166,7 @@ def collate_fn(data):
     src_seqs, src_lengths = merge(src_seqs)
     trg_seqs, trg_lengths = merge(trg_seqs)
 
-    return src_seqs, src_lengths, trg_seqs, trg_lengths
+    return src_seqs, torch.LongTensor(src_lengths), trg_seqs, torch.LongTensor(trg_lengths)
 
 def get_loader(data_raw, idxs):
 

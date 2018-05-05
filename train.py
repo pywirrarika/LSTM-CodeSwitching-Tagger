@@ -10,7 +10,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from tqdm import tqdm  # Wrap any iterator to show a progress bar.
 from utils import save_checkpoint, print_hyperparameters
-from readata import readtrain, readdev, prepare_embedding, prepare, get_loader
+from readata import readtrain, readdev, prepare_embedding, prepare, get_loader, sort_batch
 from csfeatures import morphVec
 from predict import predict
 from config import *
@@ -87,6 +87,10 @@ def train():
         y_pred = list()
         for batch, lengths, targets, lengths2 in dataset:
             model.zero_grad()
+            print(batch.size())
+            batch, targets, lengths = sort_batch(batch, targets, lengths)
+            print(batch.size())
+           
             pred = model(autograd.Variable(batch), lengths)
             loss = loss_function(pred, autograd.Variable(targets))
             loss.backward()
