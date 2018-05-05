@@ -68,7 +68,7 @@ def train():
     
     # Create an instance of the NN
     model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
-    loss_function = nn.NLLLoss()
+    loss_function = nn.NLLLoss(size_average=False)
 
     if USE_CUDA:
         model = model.cuda()
@@ -91,7 +91,9 @@ def train():
             batch, targets, lengths = sort_batch(batch, targets, lengths)
             print(batch.size())
            
-            pred = model(autograd.Variable(batch), lengths)
+            pred = model(autograd.Variable(batch), lengths.cpu().numpy())
+            print('Target size:',targets.size())
+            print('Prediction size:',pred.size())
             loss = loss_function(pred, autograd.Variable(targets))
             loss.backward()
             optimizer.step()
