@@ -52,14 +52,15 @@ class LSTMTagger(nn.Module):
 #        tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
 #        tag_scores = F.log_softmax(tag_space, dim=1)
 #        return tag_scores
+
     def forward(self, sentence, lengths):
         self.hidden = self.init_hidden(sentence.size(-1))
         embeds = self.word_embeddings(sentence)  
-        print('Embedded sentence', embeds.size())
+        #print('Embedded sentence', embeds.size())
         packed_input = pack_padded_sequence(embeds, lengths)
         packed_output, (ht, ct) = self.lstm(packed_input, self.hidden)
         lstm_out, _ = pad_packed_sequence(packed_output)  
-        print('LSTM out:',lstm_out.size())
+        #print('LSTM out:',lstm_out.size())
         #lstm_out = torch.transpose(lstm_out, 0, 1)
         #lstm_out = torch.transpose(lstm_out, 1, 2)
         #print(lstm_out.size())
@@ -73,10 +74,10 @@ class LSTMTagger(nn.Module):
         #lstm_feats = self.hidden2tag(lstm_out)
         #print(lstm_feats.size())
         output = self.hidden2tag(lstm_out)  
-        print(output)
+        #print(output)
         output = self.softmax(output)  
-        print(output)
-        print('Hidden2tag out:',output.size())
+        #print(output)
+        #print('Hidden2tag out:',output.size())
         return output
 
 
