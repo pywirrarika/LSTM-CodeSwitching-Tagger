@@ -68,6 +68,8 @@ def train():
     
     # Create an instance of the NN
     model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
+    print('Soruce size:', len(word_to_index))
+    print('Target size:', len(tag_to_index))
     loss_function = nn.NLLLoss(size_average=False)
 
     if USE_CUDA:
@@ -87,13 +89,13 @@ def train():
         y_pred = list()
         for batch, lengths, targets, lengths2 in dataset:
             model.zero_grad()
-            print(batch.size())
+            print('Original batch size:',batch.size())
             batch, targets, lengths = sort_batch(batch, targets, lengths)
-            print(batch.size())
-           
             pred = model(autograd.Variable(batch), lengths.cpu().numpy())
+            #_, preds = torch.max(pred, 1)
             print('Target size:',targets.size())
             print('Prediction size:',pred.size())
+            print(type(pred))
             loss = loss_function(pred, autograd.Variable(targets))
             loss.backward()
             optimizer.step()

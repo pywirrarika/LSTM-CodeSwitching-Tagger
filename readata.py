@@ -93,7 +93,6 @@ def pad_sequences(vectorized_seqs, seq_lengths):
     return seq_tensor
 
 def sort_batch(batch, ys, lengths):
-    print(type(lengths))
     seq_lengths, perm_idx = lengths.sort(0,descending=True)
     seq_tensor = batch[perm_idx]
     targ_tensor = ys[perm_idx]
