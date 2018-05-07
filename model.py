@@ -10,7 +10,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from tqdm import tqdm  # Wrap any iterator to show a progress bar.
 from utils import save_checkpoint, print_hyperparameters
-from readata import readtrain, readdev, prepare_embedding, prepare, get_loader, PAD_IDX
+from readdata import readtrain, readdev, prepare_embedding, prepare, get_loader, PAD_IDX
 from csfeatures import morphVec
 from config import *
 
