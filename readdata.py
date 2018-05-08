@@ -67,10 +67,10 @@ def prepare_embedding(data):
         index_to_word[value] = key
     return tag_to_index, word_to_index, index_to_tag, index_to_word
 
-def make_feature_vector(word, idx):
-    idxs = [float(idx)] + morphVec(word)
-    tensor = torch.FloatTensor(idxs)
-    return Variable(tensor)
+#def make_feature_vector(word, idx):
+#    idxs = [float(idx)] + morphVec(word)
+#    tensor = torch.FloatTensor(idxs)
+#    return Variable(tensor)
 
 # Esta función generará secuencias con embeddings listos para usarse
 # a partir del diccionarios definido con prepare_embedding

@@ -35,10 +35,6 @@ class LSTMTagger(nn.Module):
         self.dropout = nn.Dropout(p=DROPOUT)
         self.softmax = nn.LogSoftmax()
     
-#    def init_hidden(self):
-#        return (autograd.Variable(torch.zeros(NUM_LAYERS * NUM_DIRS,1,self.hidden_dim // NUM_DIRS )),
-#                autograd.Variable(torch.zeros(NUM_LAYERS * NUM_DIRS,1,self.hidden_dim // NUM_DIRS)))
-
     def init_hidden(self, batch):
         return (autograd.Variable(torch.randn(NUM_LAYERS*NUM_DIRS, batch, self.hidden_dim // NUM_DIRS)),
                 autograd.Variable(torch.randn(NUM_LAYERS*NUM_DIRS, batch, self.hidden_dim // NUM_DIRS)))
@@ -46,7 +42,6 @@ class LSTMTagger(nn.Module):
 #    def forward(self,sentence):
 #        embeds = self.word_embeddings(sentence)
 #
-#        embeds = self.dropout(embeds) 
 #        lstm_out, self.hidden = self.lstm(embeds.view(len(sentence), 1, -1), self.hidden)
 #        lstm_out = self.dropout(lstm_out) 
 #        tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
@@ -56,28 +51,12 @@ class LSTMTagger(nn.Module):
     def forward(self, sentence, lengths):
         self.hidden = self.init_hidden(sentence.size(-1))
         embeds = self.word_embeddings(sentence)  
-        #print('Embedded sentence', embeds.size())
+        embeds = self.dropout(embeds) 
         packed_input = pack_padded_sequence(embeds, lengths)
         packed_output, (ht, ct) = self.lstm(packed_input, self.hidden)
         lstm_out, _ = pad_packed_sequence(packed_output)  
-        #print('LSTM out:',lstm_out.size())
-        #lstm_out = torch.transpose(lstm_out, 0, 1)
-        #lstm_out = torch.transpose(lstm_out, 1, 2)
-        #print(lstm_out.size())
-        #lstm_out = F.tanh(lstm_out)  
-        #lstm_out, indices = F.max_pool1d(lstm_out, lstm_out.size(2), return_indices=True)
-        #print(lstm_out.size())
-        #lstm_out = lstm_out.squeeze(2)
-        #print('After squeeze',lstm_out.size())
-        #lstm_out = F.tanh(lstm_out)
-        #print(lstm_out.size())
-        #lstm_feats = self.hidden2tag(lstm_out)
-        #print(lstm_feats.size())
         output = self.hidden2tag(lstm_out)  
-        #print(output)
         output = self.softmax(output)  
-        #print(output)
-        #print('Hidden2tag out:',output.size())
         return output
 
 

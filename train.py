@@ -87,18 +87,16 @@ def train():
         loss_sum = 0
         y_true = list()
         y_pred = list()
-        for batch, lengths, targets, lengths2 in dataset:
+        for batch, lengths, targets, lengths2 in tqdm(dataset):
             model.zero_grad()
-            #print('Original batch size:',batch.size())
             batch, targets, lengths = sort_batch(batch, targets, lengths)
+            #pred = model(autograd.Variable(batch), lengths.cpu().numpy())
             pred = model(autograd.Variable(batch), lengths.cpu().numpy())
-            #_, preds = torch.max(pred, 1)
-            #print('Target size:',targets.size())
-            #print('Prediction size:',pred.size())
             loss = loss_function(pred.view(-1, pred.size()[2]), autograd.Variable(targets).view(-1, 1).squeeze(1))
             loss.backward()
             optimizer.step()
             loss_sum += loss.data[0]
+            print(loss.data[0])
             pred_idx = torch.max(pred, 1)[1]
             y_true += list(targets.int())
             y_pred += list(pred_idx.data.int())
