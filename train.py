@@ -72,7 +72,7 @@ def train():
     model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
     print('Source size:', len(word_to_index))
     print('Target size:', len(tag_to_index))
-    loss_function = nn.NLLLoss(ignore_index=0, size_average=True)
+    loss_function = nn.NLLLoss(size_average=True)
 
     if USE_CUDA:
         model = model.cuda()
@@ -95,12 +95,12 @@ def train():
             #pred = model(autograd.Variable(batch), lengths.cpu().numpy())
             pred = model(autograd.Variable(batch), lengths.cpu().numpy())
             loss = loss_function(pred.view(-1, pred.size()[2]), autograd.Variable(targets).view(-1, 1).squeeze(1))
-            for f in model.parameters():
-                print('data is')
-                print(f.data)
-                print('grad is')
-                print(f.grad)
             loss.backward()
+            #for f in model.parameters():
+            #    print('data is')
+            #    print(f.data)
+            #    print('grad is')
+            #    print(f.grad)
             optimizer.step()
             loss_sum += loss.data[0]
             #print(loss.data[0])
