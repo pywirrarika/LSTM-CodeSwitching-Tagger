@@ -89,12 +89,17 @@ def train():
         loss_sum = 0
         y_true = list()
         y_pred = list()
-        for batch, lengths, targets, lengths2 in dataset:  # tqdm(dataset):
+        for batch, lengths, targets, lengths2 in tqdm(dataset):
             model.zero_grad()
             #batch, targets, lengths = sort_batch(batch, targets, lengths)
             #pred = model(autograd.Variable(batch), lengths.cpu().numpy())
             pred = model(autograd.Variable(batch), lengths.cpu().numpy())
             loss = loss_function(pred.view(-1, pred.size()[2]), autograd.Variable(targets).view(-1, 1).squeeze(1))
+            for f in model.parameters():
+                print('data is')
+                print(f.data)
+                print('grad is')
+                print(f.grad)
             loss.backward()
             optimizer.step()
             loss_sum += loss.data[0]
