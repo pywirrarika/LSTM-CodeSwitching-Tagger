@@ -72,7 +72,7 @@ def train():
     model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
     print('Source size:', len(word_to_index))
     print('Target size:', len(tag_to_index))
-    loss_function = nn.NLLLoss(size_average=True)
+    loss_function = nn.NLLLoss(ignore_index=0, size_average=True)
 
     if USE_CUDA:
         model = model.cuda()
