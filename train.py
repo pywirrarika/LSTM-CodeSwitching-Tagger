@@ -38,17 +38,18 @@ def train():
     tag_to_index, word_to_index, index_to_tag, index_to_word = prepare_embedding(data_raw)
     idxs = [tag_to_index, word_to_index, index_to_tag, index_to_word]
     
-
     dataset = get_loader(data_raw, idxs)
+    dev_dataset = get_loader(data_raw_dev, idxs)
    
-
+    '''
     data = []
     for sentence, tags in data_raw:
         sentence_in = prepare(sentence, word_to_index)
         targets = prepare(tags, tag_to_index)
         data.append((sentence_in, targets))
+    '''
 
-    data_dev = data_raw_dev
+    #data_dev = data_raw_dev
 #    data_dev = []
 #    for sentence, tags in data_raw_dev:
 #        sentence_in = prepare(sentence, word_to_index)
@@ -58,8 +59,9 @@ def train():
 
     #data_batches = mini_batch(idxs, data)
 #    data_dev_batches = mini_batch(idxs, data_dev)
-    print('Training Data size', len(data))
-    print('Dev data size', len(data_dev))
+    # print('Training Data size', len(data))
+    print('Training Data size', len(dataset))
+    print('Dev data size', len(dev_dataset))
  
     # Save indexes to data.pickle
     with open('data.pickle', 'wb') as f:
@@ -68,7 +70,7 @@ def train():
     
     # Create an instance of the NN
     model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_index), len(tag_to_index))
-    print('Soruce size:', len(word_to_index))
+    print('Source size:', len(word_to_index))
     print('Target size:', len(tag_to_index))
     loss_function = nn.NLLLoss(size_average=True)
 
@@ -81,22 +83,22 @@ def train():
 
 
     #Train
-    print('Train with', len(data), 'examples.')
+    print('Train with', len(dataset), 'examples.')
     for epoch in range(EPOCHS):
         print(f'Starting epoch {epoch}.')
         loss_sum = 0
         y_true = list()
         y_pred = list()
-        for batch, lengths, targets, lengths2 in tqdm(dataset):
+        for batch, lengths, targets, lengths2 in dataset:  # tqdm(dataset):
             model.zero_grad()
-            batch, targets, lengths = sort_batch(batch, targets, lengths)
+            #batch, targets, lengths = sort_batch(batch, targets, lengths)
             #pred = model(autograd.Variable(batch), lengths.cpu().numpy())
             pred = model(autograd.Variable(batch), lengths.cpu().numpy())
             loss = loss_function(pred.view(-1, pred.size()[2]), autograd.Variable(targets).view(-1, 1).squeeze(1))
             loss.backward()
             optimizer.step()
             loss_sum += loss.data[0]
-            print(loss.data[0])
+            #print(loss.data[0])
             pred_idx = torch.max(pred, 1)[1]
             y_true += list(targets.int())
             y_pred += list(pred_idx.data.int())
@@ -106,6 +108,11 @@ def train():
 
         #print('Accuracy on test:', acc, 'loss:', loss_total)
         print('>>> Loss:', loss_total)
+
+        acc = predict(dataset, model_=model, idxs=idxs)
+        print("Accuracy on train:", acc)
+        acc = predict(dev_dataset, model_=model, idxs=idxs)
+        print("Accuracy on dev:", acc)
 
 #        for sentence, tags in tqdm(data):
 #            model.zero_grad()

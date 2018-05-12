@@ -20,7 +20,7 @@ class LSTMTagger(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
         super(LSTMTagger, self).__init__()
         self.hidden_dim = hidden_dim
-        print('Vocuabulary Size:',vocab_size)
+        print('Vocabulary Size:',vocab_size)
         self.word_embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=PAD_IDX)
 
         #Creamos un LSTM con tamaño de entrada de embedding y estados de salida ocultos hidden_dim
@@ -52,9 +52,10 @@ class LSTMTagger(nn.Module):
         self.hidden = self.init_hidden(sentence.size(-1))
         embeds = self.word_embeddings(sentence)  
         embeds = self.dropout(embeds) 
-        packed_input = pack_padded_sequence(embeds, lengths)
-        packed_output, (ht, ct) = self.lstm(packed_input, self.hidden)
-        lstm_out, _ = pad_packed_sequence(packed_output)  
+        #packed_input = pack_padded_sequence(embeds, lengths)
+        #packed_output, (ht, ct) = self.lstm(packed_input, self.hidden)
+        #lstm_out, _ = pad_packed_sequence(packed_output)  
+        lstm_out, _ = self.lstm(embeds, self.hidden)
         output = self.hidden2tag(lstm_out)  
         output = self.softmax(output)  
         return output

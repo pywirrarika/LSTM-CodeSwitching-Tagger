@@ -43,16 +43,29 @@ def predict(data, model_name='', model_=None, idxs=None):
 
     correct = 0
     total = 0
-    for line in data:
-        inputs = prepare(line[0], word_to_index)
-        tag_scores = model(inputs)
-        tags = out_gen(tag_scores, index_to_tag)
-        for pred, gold in zip(tags, line[1]):
-            if gold in [EOS, SOS]:
-                pass
-            if pred == gold:
-                correct += 1
-            total += 1
+    #for line in data:
+    #    inputs = prepare(line[0], word_to_index)
+    #    tag_scores = model(inputs)
+    #    tags = out_gen(tag_scores, index_to_tag)
+    for batch, lengths, targets, lengths2 in data:
+        pred = model(autograd.Variable(batch), lengths.cpu().numpy())
+        _, pred = torch.max(pred, dim=2)
+        pred = pred.data
+        for p, g in zip(pred, targets):
+            for idx in range(len(g)):
+                if index_to_tag[g[idx]] == SOS:
+                    pass
+                if index_to_tag[g[idx]] == EOS:
+                    break
+                if index_to_tag[g[idx]] == index_to_tag[p[idx]]:
+                    correct += 1
+                total += 1
+        #for pred, gold in zip(tags, line[1]):
+        #    if gold in [EOS, SOS]:
+        #        pass
+        #    if pred == gold:
+        #        correct += 1
+        #    total += 1
 
     return correct/total
 
