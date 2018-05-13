@@ -32,7 +32,9 @@ def train():
     print('Reading data...')
     data_raw = readtrain()
     data_raw_dev = readdev()
-
+    print('Training Data size', len(data_raw))
+    print('Dev data size', len(data_raw_dev))
+ 
     print('Preparing data...')
 
     tag_to_index, word_to_index, index_to_tag, index_to_word = prepare_embedding(data_raw)
@@ -60,9 +62,7 @@ def train():
     #data_batches = mini_batch(idxs, data)
 #    data_dev_batches = mini_batch(idxs, data_dev)
     # print('Training Data size', len(data))
-    print('Training Data size', len(dataset))
-    print('Dev data size', len(dev_dataset))
- 
+
     # Save indexes to data.pickle
     with open('data.pickle', 'wb') as f:
         pickle.dump([tag_to_index, word_to_index, index_to_tag, index_to_word], f, pickle.HIGHEST_PROTOCOL)
@@ -76,6 +76,7 @@ def train():
 
     if USE_CUDA:
         model = model.cuda()
+
     if OPTIMIZER == 'SGD':
         optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE)
     else:
@@ -83,7 +84,7 @@ def train():
 
 
     #Train
-    print('Train with', len(dataset), 'examples.')
+    print('Train with', len(dataset), 'batches.')
     for epoch in range(EPOCHS):
         print(f'Starting epoch {epoch}.')
         loss_sum = 0

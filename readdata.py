@@ -20,10 +20,10 @@ SOS_IDX = 2
 OOV_IDX = 3
 
 def readtrain():
-    return read('data/train.enes.txt')
+    return read(TRAIN_DATA)
 
 def readdev():
-    return read('data/test_enes.txt')
+    return read(DEV_DATA)
 
 def read(filename):
     F = open(filename, 'r').read().split('\n')

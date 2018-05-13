@@ -8,11 +8,11 @@ import pickle
 import sys
 
 from utils import load_checkpoint
-from readdata import readdev, prepare_embedding, prepare, EOS, SOS
+from readdata import readdev, prepare_embedding, prepare, EOS, SOS, PAD
 from config import *
 from model import LSTMTagger
 
-def predict(data, model_name='', model_=None, idxs=None):
+def predict(data, model_name='', model_=None, idxs=None, out=False):
 
     if idxs:
         [tag_to_index, word_to_index, index_to_tag, index_to_word] = idxs
@@ -53,13 +53,17 @@ def predict(data, model_name='', model_=None, idxs=None):
         pred = pred.data
         for p, g in zip(pred, targets):
             for idx in range(len(g)):
-                if index_to_tag[g[idx]] == SOS:
-                    pass
-                if index_to_tag[g[idx]] == EOS:
+                if index_to_tag[g[idx]] in [SOS, PAD]:
+                    continue
+                elif index_to_tag[g[idx]] == EOS:
                     break
-                if index_to_tag[g[idx]] == index_to_tag[p[idx]]:
+                elif index_to_tag[g[idx]] == index_to_tag[p[idx]]:
                     correct += 1
-                total += 1
+                    if out:
+                        print(index_to_tag[p[idx]], end=' ')
+                    total += 1
+                else:
+                    total += 1
         #for pred, gold in zip(tags, line[1]):
         #    if gold in [EOS, SOS]:
         #        pass
